@@ -1,0 +1,7 @@
+.form_input input{
+    /* Might need to change this for responsiveness */
+    border-radius: 25px !important;
+    padding: 10px 20px;
+    margin-bottom: 1rem;
+    width: 80%;
+}
