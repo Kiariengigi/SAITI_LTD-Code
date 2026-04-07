@@ -34,10 +34,11 @@ interface LocationPickerProps {
 // ─── Loader helper ────────────────────────────────────────────────────────────
 
 let scriptPromise: Promise<void> | null = null;
+type MapsWindow = Window & { google?: typeof google };
 
 function loadGoogleMaps(apiKey: string): Promise<void> {
   if (scriptPromise) return scriptPromise;
-  if (typeof window !== "undefined" && window.google?.maps) {
+  if (typeof window !== "undefined" && (window as MapsWindow).google?.maps) {
     return (scriptPromise = Promise.resolve());
   }
   scriptPromise = new Promise((resolve, reject) => {
@@ -133,7 +134,9 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
     (latLng: LatLng) => {
       const geocoder = geocoderRef.current;
       if (!geocoder) return;
-      geocoder.geocode({ location: latLng }, (results, gStatus) => {
+      geocoder.geocode(
+        { location: latLng },
+        (results: google.maps.GeocoderResult[] | null, gStatus: google.maps.GeocoderStatus) => {
         if (gStatus === "OK" && results?.[0]) {
           const formatted = results[0].formatted_address;
           setAddress(formatted);
@@ -147,7 +150,8 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
           if (inputRef.current) inputRef.current.value = fallback;
           emit(latLng, fallback);
         }
-      });
+      }
+      );
     },
     [emit]
   );
@@ -258,22 +262,25 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
     if (!geocoder || !address.trim()) return;
     setStatus("loading");
     setStatusMsg("Searching…");
-    geocoder.geocode({ address: address.trim() }, (results, gStatus) => {
-      if (gStatus === "OK" && results?.[0]?.geometry?.location) {
-        const loc = results[0].geometry.location;
-        const latLng = { lat: loc.lat(), lng: loc.lng() };
-        const formatted = results[0].formatted_address;
-        setAddress(formatted);
-        if (inputRef.current) inputRef.current.value = formatted;
-        placeMarker(latLng, true);
-        emit(latLng, formatted);
-        setStatus("success");
-        setStatusMsg("Location set");
-      } else {
-        setStatus("error");
-        setStatusMsg("Address not found. Try a different search.");
+    geocoder.geocode(
+      { address: address.trim() },
+      (results: google.maps.GeocoderResult[] | null, gStatus: google.maps.GeocoderStatus) => {
+        if (gStatus === "OK" && results?.[0]?.geometry?.location) {
+          const loc = results[0].geometry.location;
+          const latLng = { lat: loc.lat(), lng: loc.lng() };
+          const formatted = results[0].formatted_address;
+          setAddress(formatted);
+          if (inputRef.current) inputRef.current.value = formatted;
+          placeMarker(latLng, true);
+          emit(latLng, formatted);
+          setStatus("success");
+          setStatusMsg("Location set");
+        } else {
+          setStatus("error");
+          setStatusMsg("Address not found. Try a different search.");
+        }
       }
-    });
+    );
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -294,7 +301,12 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            onKeyDown={(e) => setAddress(e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleManualSubmit();
+              }
+            }}
             placeholder={placeholder}
             style={styles.input}
             disabled={!mapsReady}
@@ -315,6 +327,7 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
           )}
           <button
             type="submit"
+            onClick={handleManualSubmit}
             style={{ ...styles.btn, ...styles.searchBtn }}
             disabled={!mapsReady || !address.trim()}
           >
@@ -335,7 +348,7 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
 
         <button
           type="button"
-          onClick={handleManualSubmit}
+          onClick={detectLocation}
           style={{ ...styles.btn, ...styles.detectBtn }}
           disabled={!mapsReady || status === "loading"}
         >

@@ -23,8 +23,6 @@ interface Order_summary {
     Avg_delivery_Day: number
 }
 
-var orderItemId = 1
-
 const suggestedOrders:Order_suggest[] = [
   { id: 1, supplier: "Sam West Distributors", productname: "Pepsi 500ml x 12", product_img: pepsi_bottle, quantity: 12, price: 5790 },
   { id: 2, supplier: "Sam West Distributors", productname: "Pepsi 500ml x 12", product_img: pepsi_bottle, quantity: 12, price: 5790 },

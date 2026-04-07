@@ -8,13 +8,6 @@ import CustomersPage  from "./Customerspage";
 import OrdersPage     from "./Orderspage";
 import InventoryPage  from "./Inventorypage";
 
-const PAGE_TITLES: Record<Page, string> = {
-  dashboard: "Dashboard",
-  customers: "Customers",
-  orders:    "Orders",
-  inventory: "Inventory",
-};
-
 function PageContent({ page }: { page: Page }) {
   switch (page) {
     case "dashboard": return <DashboardPage />;

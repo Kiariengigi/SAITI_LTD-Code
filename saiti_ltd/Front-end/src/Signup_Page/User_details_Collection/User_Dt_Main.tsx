@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 
 import LocationandReach from './LocationandReach';
-import type { LocationResult } from './LocationandReach';
 
 import GeneralInfo from './GeneralInfo';
 import Productioninfo from './Productioninfo';
@@ -42,8 +41,6 @@ const User_Dt_Main = () => {
   const nextStep = () => setStep(prev => prev + 1);
   const prevStep = () => setStep(prev => prev - 1);
 
-  const [result, setResult] = useState<LocationResult | null>(null)
-
   return (
     <Container fluid className="p-4 vh-100 overflow-hidden bg-white">
       <Row className="g-0 h-100 rounded-3">
@@ -71,11 +68,11 @@ const User_Dt_Main = () => {
                 <>
                   <LocationandReach
                     apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-                    formData={formData}
-                    setFormData={setFormData}
                     onNext={nextStep}
                     onBack={prevStep}
-                    onChange={setResult}
+                    onChange={({ address }) => {
+                      setFormData((prev) => ({ ...prev, location: address }));
+                    }}
                     mapHeight='420px'
                   />
                 </>

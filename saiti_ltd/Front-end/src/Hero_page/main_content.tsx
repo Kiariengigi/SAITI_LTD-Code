@@ -2,12 +2,9 @@ import '../Styles/main_cont.css'
 import Container from 'react-bootstrap/Container'
 import background from '../assets/Hero_assets/Asset 1.png'
 import Button from 'react-bootstrap/Button'
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 function Main_content(){
-    const [isLogin, setIsLogin] = useState(true);
     const navigate = useNavigate()
-    const toggleAuth = () => setIsLogin(!isLogin);
     return(
         <div className='main_cont vw-100 d-flex justify-content-center align-items-center min-vh-100'>
         <Container fluid className="hero_text text-center d-flex flex-column align-items-center justify-content-center position-absolute z-3">

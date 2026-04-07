@@ -3,19 +3,6 @@ import type { InventoryItem } from "./Types";
 import { INVENTORY } from "./Types";
 import PaginatedTable from "./Paginatedtable"
 
-const levelBadge = (level: InventoryItem["stockLevel"]) => {
-  const map: Record<InventoryItem["stockLevel"], string> = {
-    "In Stock":     "success",
-    "Low Stock":    "warning",
-    "Out of Stock": "danger",
-  };
-  return (
-    <span className={`badge bg-${map[level]} rounded-pill`} style={{ fontSize: 9 }}>
-      {level}
-    </span>
-  );
-};
-
 const inStock    = INVENTORY.filter((i) => i.stockLevel === "In Stock").length;
 const lowStock   = INVENTORY.filter((i) => i.stockLevel === "Low Stock").length;
 const outOfStock = INVENTORY.filter((i) => i.stockLevel === "Out of Stock").length;
