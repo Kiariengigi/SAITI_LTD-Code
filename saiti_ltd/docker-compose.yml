@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: saiti-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-saiti_db}
+      POSTGRES_USER: ${POSTGRES_USER:-saiti_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-saiti_pass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ai-model:
+    build:
+      context: ./Ai_Model
+      dockerfile: Dockerfile
+    container_name: saiti-ai-model
+    ports:
+      - "8000:8000"
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./Back-end
+      dockerfile: Dockerfile
+    container_name: saiti-backend
+    ports:
+      - "4000:4000"
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://saiti_user:saiti_pass@postgres:5432/saiti_db}
+      AI_MODEL_URL: http://ai-model:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-model:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
