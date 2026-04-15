@@ -1,4 +1,6 @@
 import type { Supplier } from "./Types";
+import { useEffect, useState } from "react";
+import axios from "../api/axios";
 
 // ── CircularProgress ──────────────────────────────────────────────────────────
 
@@ -47,9 +49,40 @@ interface SupplierPanelProps {
 }
 
 export default function SupplierPanel({ supplier }: SupplierPanelProps) {
+  const [displaySupplier, setDisplaySupplier] = useState<Supplier>(supplier);
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await axios.get("user/info", {
+          withCredentials: true,
+        });
+
+        const user = response.data?.data?.user;
+        if (!user) return;
+
+        const roleType = String(user.roleType || "merchant");
+        const roleLabel = roleType.charAt(0).toUpperCase() + roleType.slice(1);
+        const memberSinceDate = user.createdAt ? new Date(user.createdAt) : new Date();
+
+        setDisplaySupplier((prev) => ({
+          ...prev,
+          name: user.companyName || "John Doe Company",
+          role: roleLabel,
+          location: user.location || "Location not set",
+          memberSince: memberSinceDate.getFullYear(),
+        }));
+      } catch (error) {
+        console.error("Failed to fetch supplier panel details:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
   const metrics = [
-    { label: "Fulfillment Rate", value: supplier.fulfillmentRate, color: "#F59E0B" },
-    { label: "Customer Rating",  value: supplier.customerRating,  color: "#22C55E" },
+    { label: "Fulfillment Rate", value: displaySupplier.fulfillmentRate, color: "#F59E0B" },
+    { label: "Customer Rating",  value: displaySupplier.customerRating,  color: "#22C55E" },
   ];
 
   return (
@@ -76,10 +109,10 @@ export default function SupplierPanel({ supplier }: SupplierPanelProps) {
       {/* Identity */}
       <div className="text-center mb-3">
         <div className="fw-bold" style={{ fontSize: 17, color: "#111", letterSpacing: "-0.3px" }}>
-          {supplier.name}
+          {displaySupplier.name}
         </div>
-        <div className="text-muted small">{supplier.role}</div>
-        <div className="text-muted small">{supplier.location}</div>
+        <div className="text-muted small">{displaySupplier.role}</div>
+        <div className="text-muted small">{displaySupplier.location}</div>
       </div>
 
       {/* Metrics */}
@@ -100,7 +133,7 @@ export default function SupplierPanel({ supplier }: SupplierPanelProps) {
         className="mt-3 text-muted"
         style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", letterSpacing: "0.02em" }}
       >
-        Member since: {supplier.memberSince}
+        Member since: {displaySupplier.memberSince}
       </div>
     </div>
   );

@@ -1,25 +1,24 @@
 // ProductsPanel.tsx
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type Product, PAGE_SIZE } from "./Types";
+import { useNavigate } from "react-router-dom";
+import axios from "../api/axios";
 
 // ── ActionsMenu ───────────────────────────────────────────────────────────────
 
 interface ActionsMenuProps {
-  productName: string;
-  onEdit?:      (name: string) => void;
-  onDuplicate?: (name: string) => void;
-  onView?:      (name: string) => void;
-  onDelete?:    (name: string) => void;
+  onEdit?:      () => void;
+  onDuplicate?: () => void;
+  onDelete?:    () => void;
 }
 
-function ActionsMenu({ productName, onEdit, onDuplicate, onView, onDelete }: ActionsMenuProps) {
+function ActionsMenu({ onEdit, onDuplicate, onDelete }: ActionsMenuProps) {
   const [open, setOpen] = useState(false);
 
   const actions = [
-    { label: "Edit",         handler: () => onEdit?.(productName) },
-    { label: "Duplicate",    handler: () => onDuplicate?.(productName) },
-    { label: "View Details", handler: () => onView?.(productName) },
-    { label: "Delete",       handler: () => onDelete?.(productName), danger: true },
+    { label: "Edit",      handler: () => onEdit?.() },
+    { label: "Duplicate", handler: () => onDuplicate?.() },
+    { label: "Delete",    handler: () => onDelete?.(), danger: true },
   ];
 
   return (
@@ -70,15 +69,110 @@ interface ProductsPanelProps {
 }
 
 export default function ProductsPanel({ products }: ProductsPanelProps) {
+  const [items, setItems] = useState<Product[]>(products);
   const [search, setSearch] = useState("");
   const [page, setPage]     = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const filtered = products.filter(
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await axios.get("products/getproducts", {
+          withCredentials: true,
+        });
+
+        const apiProducts = response.data?.data?.products ?? [];
+
+        const mapped: Product[] = apiProducts.map((p: any) => ({
+          id: p.id,
+          name: p.productName,
+          productId: p.id.slice(0, 8).toUpperCase(),
+          price: Number(p.sellingPrice ?? p.price ?? 0),
+          stock: Number(p.currentStockLevel ?? p.stockLevel ?? 0),
+          type: p.category ?? "Other",
+          unitOfMeasure: p.unitOfMeasure ?? "unit",
+          description: p.description ?? "",
+          isActive: p.listingActive ?? p.isActive ?? true,
+        }));
+
+        setItems(mapped);
+      } catch (err: any) {
+        setError(err.response?.data?.message || "Failed to load products");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const handleEdit = (product: Product) => {
+    navigate("/newproduct", { state: { mode: "edit", product } });
+  };
+
+  const handleDuplicate = async (product: Product) => {
+    try {
+      await axios.post(
+        "products/add",
+        {
+          productName: `${product.name} (Copy)`,
+          description: product.description || null,
+          category: product.type || null,
+          unitOfMeasure: product.unitOfMeasure || "unit",
+          price: Number(product.price),
+          currentStockLevel: Number(product.stock),
+          reorderPoint: 0,
+          isActive: product.isActive ?? true,
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        }
+      );
+
+      setActionMessage("Product duplicated successfully.");
+
+      // Reload product list after duplication
+      const response = await axios.get("products/getproducts", { withCredentials: true });
+      const apiProducts = response.data?.data?.products ?? [];
+      const mapped: Product[] = apiProducts.map((p: any) => ({
+        id: p.id,
+        name: p.productName,
+        productId: p.id.slice(0, 8).toUpperCase(),
+        price: Number(p.sellingPrice ?? p.price ?? 0),
+        stock: Number(p.currentStockLevel ?? p.stockLevel ?? 0),
+        type: p.category ?? "Other",
+        unitOfMeasure: p.unitOfMeasure ?? "unit",
+        description: p.description ?? "",
+        isActive: p.listingActive ?? p.isActive ?? true,
+      }));
+      setItems(mapped);
+    } catch (err: any) {
+      setActionMessage(err.response?.data?.message || "Failed to duplicate product.");
+    }
+  };
+
+  const handleDelete = (product: Product) => {
+    const confirmed = window.confirm(`Delete ${product.name}?`);
+    if (!confirmed) return;
+
+    setItems((prev) => prev.filter((p) => p.id !== product.id));
+    setActionMessage("Product removed from this list.");
+  };
+
+  const filtered = useMemo(() => items.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.type.toLowerCase().includes(search.toLowerCase()) ||
       p.productId.toLowerCase().includes(search.toLowerCase())
-  );
+  ), [items, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -100,6 +194,18 @@ export default function ProductsPanel({ products }: ProductsPanelProps) {
       className="card border rounded-4 shadow-sm d-flex flex-column flex-grow-1 overflow-hidden"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
+      {error && (
+        <div className="alert alert-danger rounded-0 mb-0">{error}</div>
+      )}
+      {actionMessage && (
+        <div className="alert alert-info rounded-0 mb-0 d-flex justify-content-between align-items-center">
+          <span>{actionMessage}</span>
+          <button className="btn btn-sm btn-link" onClick={() => setActionMessage(null)}>
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ── Table ── */}
       <div className="flex-grow-1 overflow-auto">
         <table className="table table-hover align-middle mb-0">
@@ -119,6 +225,13 @@ export default function ProductsPanel({ products }: ProductsPanelProps) {
             </tr>
           </thead>
           <tbody>
+            {!loading && paginated.length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-center py-4 text-muted">
+                  No products associated with this account yet.
+                </td>
+              </tr>
+            )}
             {paginated.map((product, i) => (
               <tr key={product.id}>
                 {/* Name + avatar */}
@@ -171,7 +284,11 @@ export default function ProductsPanel({ products }: ProductsPanelProps) {
 
                 {/* Actions */}
                 <td className="px-3 py-3 text-center">
-                  <ActionsMenu productName={product.name} />
+                  <ActionsMenu
+                    onEdit={() => handleEdit(product)}
+                    onDuplicate={() => handleDuplicate(product)}
+                    onDelete={() => handleDelete(product)}
+                  />
                 </td>
               </tr>
             ))}
@@ -212,6 +329,15 @@ export default function ProductsPanel({ products }: ProductsPanelProps) {
         {/* Pagination */}
         <nav aria-label="Product table pagination">
           <ul className="pagination pagination-sm mb-0 gap-1">
+            <li>
+              <button
+                className="page-link rounded-2 border small"
+                onClick={() => navigate('/newproduct')}
+                style={{ fontFamily: "'DM Sans', sans-serif", color: "#444" }}
+              >
+                + Product
+              </button>
+            </li>
             {/* Previous */}
             <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
               <button

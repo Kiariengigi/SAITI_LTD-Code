@@ -11,11 +11,20 @@ class AuthController {
     static login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     try {
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return Send.error(res, null, "Invalid credentials");
+        const user = await prisma.user.findUnique({
+            where: { email },
+            select: {
+                id: true,
+                email: true,
+                fullName: true,
+                passwordHash: true,
+                refreshToken: true,
+            },
+        });
+        if (!user) return Send.unauthorized(res, null, "Invalid credentials");
 
         const isPasswordValid = await bcrypt.compare(password, user.passwordHash); // ← passwordHash
-        if (!isPasswordValid) return Send.error(res, null, "Invalid credentials.");
+        if (!isPasswordValid) return Send.unauthorized(res, null, "Invalid credentials.");
 
         const accessToken = jwt.sign({ userId: user.id }, authConfig.secret, { expiresIn: authConfig.secret_expires_in as any });
         const refreshToken = jwt.sign({ userId: user.id }, authConfig.refresh_secret, { expiresIn: authConfig.refresh_secret_expires_in as any });
@@ -37,19 +46,38 @@ class AuthController {
         console.error("Login Failed:", error);
         return Send.error(res, null, "Login failed.");
     }
-}
+   }
     static register = async (req: Request, res: Response) => {
-    const { fullName, email, password } = req.body;
+    console.log("REQ BODY:", req.body)
+    const { fullName, email, password, Logo } = req.body;
     try {
-        const existingUser = await prisma.user.findUnique({ where: { email } });
-        if (existingUser) return Send.error(res, null, "Email is already in use.");
+        const existingUser = await prisma.user.findUnique({
+            where: { email },
+            select: { id: true },
+        });
+        if (existingUser) {
+            return res.status(409).json({
+                ok: false,
+                message: "Email is already in use.",
+                data: null,
+            });
+        }
 
         const newUser = await prisma.user.create({
             data: {
                 fullName,
                 email,
                 passwordHash: await bcrypt.hash(password, 10),
-                roleType: "merchant" // set a default or accept from body
+                Logo: typeof Logo === "string" && Logo.trim().length > 0 ? Logo : "https://placehold.co/256x256/png",
+                // roleType will be set during profile completion
+                roleType: "merchant" // temporary default, will be updated in profile completion
+            }
+            ,
+            select: {
+                id: true,
+                fullName: true,
+                email: true,
+                roleType: true,
             }
         });
         const accessToken = jwt.sign(
@@ -95,21 +123,19 @@ class AuthController {
 }
     static logout = async (req: Request, res: Response) => {
         try {
-            // 1. We will ensure the user is authenticated before running this controller
-            //    The authentication check will be done in the middleware (see auth.routes.ts).
-            //    The middleware will check the presence of a valid access token in the cookies.
-
-            // 2. Remove the refresh token from the database (optional, if using refresh tokens)
-            const userId = (req as any).user?.userId;  // Assumed that user data is added by the middleware
-            if (userId) {
-                await prisma.user.update({
-                    where: { id: userId },
-                    data: { refreshToken: null }  // Clear the refresh token from the database
-                });
+            // 1. Get userId from the authenticated request (set by AuthMiddleware)
+            const userId = (req as any).userId;
+            if (!userId) {
+                return Send.unauthorized(res, null, "Unauthorized");
             }
 
+            // 2. Remove the refresh token from the database
+            await prisma.user.update({
+                where: { id: userId },
+                data: { refreshToken: null }
+            });
+
             // 3. Remove the access and refresh token cookies
-            // We clear both cookies here (accessToken and refreshToken)
             res.clearCookie("accessToken");
             res.clearCookie("refreshToken");
 
@@ -117,8 +143,7 @@ class AuthController {
             return Send.success(res, null, "Logged out successfully.");
 
         } catch (error) {
-            // 5. If an error occurs, return an error response
-            console.error("Logout failed:", error); // Log the error for debugging
+            console.error("Logout failed:", error);
             return Send.error(res, null, "Logout failed.");
         }
     }
@@ -129,7 +154,11 @@ class AuthController {
 
             // Check if the refresh token has been revoked
             const user = await prisma.user.findUnique({
-                where: { id: userId }
+                where: { id: userId },
+                select: {
+                    id: true,
+                    refreshToken: true,
+                }
             });
 
             if (!user || !user.refreshToken) {

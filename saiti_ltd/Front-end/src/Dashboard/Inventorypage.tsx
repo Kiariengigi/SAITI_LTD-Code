@@ -1,94 +1,212 @@
 // pages/InventoryPage.tsx
-import type { InventoryItem } from "./Types";
-import { INVENTORY } from "./Types";
-import PaginatedTable from "./Paginatedtable"
+import { useEffect, useMemo, useState } from "react";
+import PaginatedTable from "./Paginatedtable";
+import axios from "../api/axios";
 
-const inStock    = INVENTORY.filter((i) => i.stockLevel === "In Stock").length;
-const lowStock   = INVENTORY.filter((i) => i.stockLevel === "Low Stock").length;
-const outOfStock = INVENTORY.filter((i) => i.stockLevel === "Out of Stock").length;
-const totalValue = INVENTORY.reduce((s, i) => s + i.price * i.quantity, 0);
+type InventoryStockLevel = "In Stock" | "Low Stock" | "Out of Stock";
 
-// Tabs mirror the wireframe header tabs
-const TABS = ["In-stock", "Low Stock", "Out of Stock"] as const;
-type Tab = (typeof TABS)[number];
-
-const tabFilter: Record<Tab, InventoryItem["stockLevel"]> = {
-  "In-stock":     "In Stock",
-  "Low Stock":    "Low Stock",
-  "Out of Stock": "Out of Stock",
+type InventoryRow = {
+  id: string;
+  productName: string;
+  category: string;
+  unitOfMeasure: string;
+  quantity: number;
+  price: number;
+  inventoryValue: number;
+  reorderPoint: number;
+  stockLevel: InventoryStockLevel;
 };
 
-import { useState } from "react";
+type InventoryMetrics = {
+  totalInventoryPieces: number;
+  inventoryValue: number;
+  cogs: number;
+  averageInventoryValue: number;
+  inventoryHealth: number;
+  inStockCount: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  roleType: string;
+};
 
-const COLUMNS = [
-  { key: "product",     label: "Product" },
-  { key: "quantity",    label: "Quantity", render: (row: InventoryItem) => `${row.quantity} pc` },
-  { key: "price",       label: "Price",   render: (row: InventoryItem) => `${row.price.toLocaleString()} KSH` },
-  { key: "lastOrdered", label: "Last Ordered" },
-];
+type InventoryAnalyticsResponse = {
+  metrics: InventoryMetrics;
+  items: InventoryRow[];
+};
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const tabs = [
+  { key: "all", label: "All Inventory" },
+  { key: "in-stock", label: "In Stock" },
+  { key: "low-stock", label: "Low Stock" },
+  { key: "out-of-stock", label: "Out of Stock" },
+] as const;
+
+type InventoryFilter = (typeof tabs)[number]["key"];
+
+const stockLevelBadge = (stockLevel: InventoryStockLevel) => {
+  const map: Record<InventoryStockLevel, string> = {
+    "In Stock": "success",
+    "Low Stock": "warning",
+    "Out of Stock": "danger",
+  };
+
+  return <span className={`badge bg-${map[stockLevel]} rounded-pill`} style={{ fontSize: 9 }}>{stockLevel}</span>;
+};
 
 export default function InventoryPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("In-stock");
+  const [metrics, setMetrics] = useState<InventoryMetrics | null>(null);
+  const [items, setItems] = useState<InventoryRow[]>([]);
+  const [activeTab, setActiveTab] = useState<InventoryFilter>("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filtered = INVENTORY.filter((i) => i.stockLevel === tabFilter[activeTab]);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadInventory = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("user/inventory-analytics");
+        const payload = response.data?.data as InventoryAnalyticsResponse | undefined;
+
+        if (isMounted) {
+          setMetrics(payload?.metrics ?? null);
+          setItems(payload?.items ?? []);
+          setError("");
+        }
+      } catch {
+        if (isMounted) {
+          setError("Failed to load inventory analytics.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadInventory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredItems = useMemo(() => {
+    switch (activeTab) {
+      case "in-stock":
+        return items.filter((item) => item.stockLevel === "In Stock");
+      case "low-stock":
+        return items.filter((item) => item.stockLevel === "Low Stock");
+      case "out-of-stock":
+        return items.filter((item) => item.stockLevel === "Out of Stock");
+      default:
+        return items;
+    }
+  }, [activeTab, items]);
+
+  const columns = [
+    { key: "productName", label: "Inventory Item" },
+    { key: "category", label: "Category" },
+    {
+      key: "quantity",
+      label: "Quantity",
+      render: (row: InventoryRow) => `${row.quantity} pc`,
+    },
+    {
+      key: "price",
+      label: "Unit Price",
+      render: (row: InventoryRow) => formatCurrency(row.price),
+    },
+    {
+      key: "inventoryValue",
+      label: "Inventory Value",
+      render: (row: InventoryRow) => formatCurrency(row.inventoryValue),
+    },
+    {
+      key: "stockLevel",
+      label: "Stock Status",
+      render: (row: InventoryRow) => stockLevelBadge(row.stockLevel),
+    },
+  ];
+
+  const statCards = [
+    { label: "Total Inventory (pc)", value: loading ? "..." : `${metrics?.totalInventoryPieces ?? 0}` },
+    { label: "Inventory Value", value: loading ? "..." : formatCurrency(metrics?.inventoryValue ?? 0) },
+    { label: "Inventory Health", value: loading ? "..." : `${(metrics?.inventoryHealth ?? 0).toFixed(2)}x` },
+  ];
+
+  const tabCounts: Record<InventoryFilter, number> = {
+    all: items.length,
+    "in-stock": metrics?.inStockCount ?? 0,
+    "low-stock": metrics?.lowStockCount ?? 0,
+    "out-of-stock": metrics?.outOfStockCount ?? 0,
+  };
 
   return (
     <div className="p-3 d-flex flex-column gap-3 h-100" style={{ minHeight: 0, overflowY: "auto" }}>
+      {error && (
+        <div className="alert alert-danger mb-0" role="alert">
+          {error}
+        </div>
+      )}
 
-      {/* Stat row */}
       <div className="row g-2">
-        {[
-          { label: "Total Inventory pc", value: INVENTORY.reduce((s, i) => s + i.quantity, 0) },
-          { label: "Inventory Value",    value: `${(totalValue / 1000).toFixed(0)}K KSH` },
-          { label: "Inventory Health",   value: `${Math.round((inStock / INVENTORY.length) * 100)}%` },
-        ].map(({ label, value }) => (
-          <div key={label} className="col-4">
+        {statCards.map(({ label, value }) => (
+          <div key={label} className="col-12 col-md-4">
             <div className="card border rounded-3 px-3 py-2 h-100" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               <div style={{ fontSize: 10, color: "#888", marginBottom: 2 }}>{label}</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#111", fontFamily: "'DM Mono', monospace" }}>{value}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#111", fontFamily: "'DM Mono', monospace" }}>
+                {value}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="d-flex gap-2">
-        {TABS.map((tab) => (
+      <div className="d-flex flex-wrap gap-2">
+        {tabs.map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
             className="btn btn-sm rounded-pill"
             style={{
               fontSize: 10,
               fontFamily: "'DM Sans', sans-serif",
-              background: activeTab === tab ? "#111" : "#f0f0f0",
-              color: activeTab === tab ? "#fff" : "#555",
+              background: activeTab === tab.key ? "#111" : "#f0f0f0",
+              color: activeTab === tab.key ? "#fff" : "#555",
               border: "none",
               padding: "3px 10px",
             }}
           >
-            {tab}
+            {tab.label}
             <span
               className="ms-1 rounded-pill px-1"
               style={{
                 fontSize: 9,
-                background: activeTab === tab ? "#F5C800" : "#ddd",
+                background: activeTab === tab.key ? "#F5C800" : "#ddd",
                 color: "#111",
               }}
             >
-              {tab === "In-stock" ? inStock : tab === "Low Stock" ? lowStock : outOfStock}
+              {tabCounts[tab.key]}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Table */}
       <div className="card border rounded-3 flex-grow-1 overflow-hidden d-flex flex-column">
-        <PaginatedTable<InventoryItem>
-          columns={COLUMNS}
-          data={filtered}
+        <PaginatedTable<InventoryRow>
+          columns={columns}
+          data={filteredItems}
           pageSize={6}
-          searchKeys={["product"]}
+          searchKeys={["productName", "category", "stockLevel"]}
         />
       </div>
     </div>

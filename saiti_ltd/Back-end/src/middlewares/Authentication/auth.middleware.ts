@@ -4,7 +4,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 export interface DecodedToken {
-    userId: number;
+    userId: string;
 }
 
 class AuthMiddleware {
@@ -13,8 +13,10 @@ class AuthMiddleware {
      * This middleware will verify the access token and attach the user information to the request object.
      */
     static authenticateUser = (req: Request, res: Response, next: NextFunction) => {
-        // 1. Extract the access token from the HttpOnly cookie
-        const token = req.cookies.accessToken;
+        // 1. Extract the access token from either the Authorization header or the HttpOnly cookie
+        const authHeader = req.headers.authorization;
+        const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+        const token = bearerToken ?? req.cookies.accessToken;
 
         // If there's no access token, return an error
         if (!token) {

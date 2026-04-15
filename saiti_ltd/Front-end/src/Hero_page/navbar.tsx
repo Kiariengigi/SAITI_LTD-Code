@@ -3,14 +3,35 @@ import Button from 'react-bootstrap/Button'
 import Container from 'react-bootstrap/Container'
 import Navbar from 'react-bootstrap/Navbar'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-
+import axios from '../api/axios'
+import { useState } from 'react'
 
 function Navbar_comp() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleLogout = async () => {
+    setLoading(true)
+    try {
+      await axios.post('auth/logout', {}, {
+        withCredentials: true
+      })
+      setIsLoggedIn(false)
+      navigate('/')
+    } catch (error) {
+      console.error('Logout failed:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleAction = () => {
-    if (location.pathname === '/login'){
+    if (isLoggedIn) {
+      handleLogout()
+      return 'Logging out...'
+    } else if (location.pathname === '/login'){
       navigate('/signup')
       return 'Sign Up'
     } else{
@@ -32,8 +53,8 @@ function Navbar_comp() {
 
         {/* Action Button scales with padding/font classes */}
         
-        <Button onClick={handleAction} className="nav-btn rounded-pill btn-dark border-0 px-4">
-          {handleAction()}
+        <Button onClick={handleAction} className="nav-btn rounded-pill btn-dark border-0 px-4" disabled={loading}>
+          {isLoggedIn ? (loading ? 'Logging out...' : 'Logout') : handleAction()}
         </Button>
 
       </Container>

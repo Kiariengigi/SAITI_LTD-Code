@@ -1,5 +1,5 @@
 import axios from "../api/axios"
-const SIGN_UP_URL = "/api/auth/register"
+const SIGN_UP_URL = "auth/register"
 import { useRef, useState, useEffect, type FormEvent } from 'react'
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faCheck, faTimes, faInfoCircle } from "@fortawesome/free-solid-svg-icons"
@@ -86,14 +86,13 @@ function Signup_form() {
     useEffect(() => {
     setErrMsg("");
     }, [user, email, pwd, matchPwd]);
+
+    // Navigate to userdetails after successful registration
+    useEffect(() => {
     if (success) {
-      return (
-        <section>
-          <h1>Success!</h1>
-          <p>Your account has been created.</p>
-        </section>
-      );
+      navigate("/signup/userdetails")
     }
+    }, [success, navigate]);
 
      return (
     <>

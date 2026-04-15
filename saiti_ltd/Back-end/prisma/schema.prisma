@@ -19,6 +19,7 @@ model User {
   refreshToken String?  @map("refresh_token") 
   roleType     RoleType @map("role_type")
   fullName     String   @map("full_name")
+  Logo         String?   @map("logo_link")
   phoneNumber  String?  @map("phone_number")
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -51,12 +52,22 @@ enum RoleType {
   @@map("role_type")
 }
 
+enum ProdScope {
+  Very_Large
+  Large
+  Medium 
+  Small
+
+  @@map("ProductionScope")
+}
+
 // ── A2. Producers subtype ────────────────────────────────────────
 model Producer {
   id          String  @id @default(uuid()) @db.Uuid
   userId      String  @unique @map("user_id") @db.Uuid
   companyName String  @map("company_name")
   industryType String? @map("industry_type")
+  ProductionScope ProdScope @map("production_Scope")
   location    String?
   phoneNumber String? @map("phone_number")
   description String?
@@ -77,9 +88,9 @@ model Wholesaler {
   userId      String  @unique @map("user_id") @db.Uuid
   companyName String  @map("company_name")
   industryType String? @map("industry_type")
-  location    String?
+  location    String? @map("location")
+  Scope       Scope? @map("scope")
   phoneNumber String? @map("phone_number")
-  creditLimit Decimal @default(0) @map("credit_limit") @db.Decimal(14, 2)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -91,6 +102,14 @@ model Wholesaler {
   @@map("wholesalers")
 }
 
+enum Scope {
+  KM10
+  KM50
+  KM100
+  KM200
+  KM250
+}
+
 // ── A4. Merchants subtype ────────────────────────────────────────
 model Merchant {
   id           String  @id @default(uuid()) @db.Uuid
@@ -99,7 +118,6 @@ model Merchant {
   industryType String? @map("industry_type")
   location     String?
   phoneNumber  String? @map("phone_number")
-  creditLimit  Decimal @default(0) @map("credit_limit") @db.Decimal(14, 2)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

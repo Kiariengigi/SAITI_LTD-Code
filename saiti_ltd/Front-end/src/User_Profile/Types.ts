@@ -7,6 +7,9 @@ export interface Product {
   price: number;
   stock: number;
   type: string;
+  unitOfMeasure?: string;
+  description?: string;
+  isActive?: boolean;
 }
 
 export interface Supplier {

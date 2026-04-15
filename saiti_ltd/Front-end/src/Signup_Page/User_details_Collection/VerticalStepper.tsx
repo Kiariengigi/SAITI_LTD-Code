@@ -11,7 +11,6 @@ const VerticalStepper = ({ currentStep, setStep }: StepperProps) => {
   const steps = [
     { id: 1, label: 'General Info' },
     { id: 2, label: 'Location & Reach' },
-    { id: 3, label: 'Production Info' },
   ];
 
   return (

@@ -5,6 +5,7 @@ import User_Dt_Main from './Signup_Page/User_details_Collection/User_Dt_Main';
 import Profile_Main from './User_Profile/Profile_main'
 import Products_main from './Products_Page/Products_main';
 import Dashboard_main from './Dashboard/Dashboard_main';
+import AddProductPage from './newProduct/addProduct';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path='/profile' element={<Profile_Main/>}/>
             <Route path='/products' element={<Products_main/>}/>
             <Route path='/dashboard' element={<Dashboard_main/>}/>
+            <Route path='/newproduct' element={<AddProductPage/>}/>
         </Routes>
     </BrowserRouter>
   );

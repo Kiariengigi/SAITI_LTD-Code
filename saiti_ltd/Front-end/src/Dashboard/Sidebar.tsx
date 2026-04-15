@@ -1,6 +1,9 @@
 // Sidebar.tsx
 import type { Page } from "./Types.ts";
 import type { JSX } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "../api/axios";
 
 interface SidebarProps {
   activePage: Page;
@@ -58,6 +61,23 @@ const NAV_ITEMS: { page: Page; label: string; icon: JSX.Element }[] = [
 ];
 
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await axios.post('auth/logout', {}, {
+        withCredentials: true
+      });
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className="d-flex flex-column"
@@ -104,18 +124,65 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
         })}
       </nav>
 
+      <div className="px-3 pb-3">
+        <button
+          onClick={() => navigate("/products")}
+          className="d-flex align-items-center gap-2 w-100 border-0 px-3 py-2 text-start rounded-2"
+          style={{
+            background: "#f5f5f5",
+            color: "#111",
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#ececec";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#f5f5f5";
+          }}
+          title="Go to products"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 7h-9" />
+            <path d="M14 17H5" />
+            <circle cx="17" cy="17" r="3" />
+            <circle cx="7" cy="7" r="3" />
+          </svg>
+          Products
+        </button>
+      </div>
+
       {/* Log Out */}
       <div className="px-3 py-3 border-top">
         <button
+          onClick={handleLogout}
+          disabled={loading}
           className="d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-start"
-          style={{ fontSize: 12, color: "#999", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+          style={{ 
+            fontSize: 12, 
+            color: loading ? "#ccc" : "#999", 
+            cursor: loading ? "not-allowed" : "pointer", 
+            fontFamily: "'DM Sans', sans-serif",
+            opacity: loading ? 0.6 : 1,
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) e.currentTarget.style.color = '#555';
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) e.currentTarget.style.color = '#999';
+          }}
+          title="Logout"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
           </svg>
-          Log Out
+          {loading ? 'Logging out...' : 'Log Out'}
         </button>
       </div>
     </div>

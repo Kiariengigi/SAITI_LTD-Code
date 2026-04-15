@@ -1,11 +1,11 @@
 import { Form, Button } from "react-bootstrap";
 
-const Productioninfo = ({ formData, setFormData, onBack }: any) => (
+const Productioninfo = ({ formData, setFormData, onBack, isSubmitting }: any) => (
   <>
     <h3 className="fw-bold mb-4">{formData.role_type} Operational Details</h3>
 
     {/* Producer Specific Fields */}
-    {formData.role_type === 'Producer' && (
+    {formData.role_type === 'producer' && (
       <>
         <Form.Group className="mb-3">
           <Form.Label>Primary Product Category</Form.Label>
@@ -51,7 +51,7 @@ const Productioninfo = ({ formData, setFormData, onBack }: any) => (
     )}
 
     {/* Wholesaler Specific Fields */}
-    {formData.role_type === 'Wholesaler' && (
+    {formData.role_type === 'wholesaler' && (
       <>
         <Form.Group className="mb-3">
           <Form.Label>Distribution Radius (km)</Form.Label>
@@ -97,7 +97,7 @@ const Productioninfo = ({ formData, setFormData, onBack }: any) => (
     )}
 
     {/* Merchant Specific Fields */}
-    {formData.role_type === 'Merchant' && (
+    {formData.role_type === 'merchant' && (
       <>
         <Form.Group className="mb-3">
           <Form.Label>Business Type</Form.Label>
@@ -142,11 +142,11 @@ const Productioninfo = ({ formData, setFormData, onBack }: any) => (
     )}
 
     <div className="d-flex gap-2 mt-4">
-      <Button variant="dark" className="w-50 rounded-pill" onClick={onBack}>
+      <Button variant="dark" className="w-50 rounded-pill" onClick={onBack} disabled={isSubmitting}>
         Back
       </Button>
-      <Button type="submit" variant="warning" className="w-50 rounded-pill text-white fw-bold">
-        Complete Sign Up
+      <Button type="submit" variant="warning" className="w-50 rounded-pill text-white fw-bold" disabled={isSubmitting}>
+        {isSubmitting ? "Completing..." : "Complete Sign Up"}
       </Button>
     </div>
   </>

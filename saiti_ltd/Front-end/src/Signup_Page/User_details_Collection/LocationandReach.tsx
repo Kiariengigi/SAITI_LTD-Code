@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Form, Button } from "react-bootstrap";
+
 declare const google: any;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -18,6 +20,8 @@ interface LocationPickerProps {
   apiKey: string;
   /** Called whenever the user finalises a location */
   onChange?: (result: LocationResult) => void;
+  /** Called when phone number changes */
+  onPhoneChange?: (phone: string) => void;
   /** Initial map centre (defaults to world centre) */
   defaultCenter?: LatLng;
   /** Initial zoom level */
@@ -30,6 +34,8 @@ interface LocationPickerProps {
   onNext?: () => void;
   /** Handler for back step */
   onBack?: () => void;
+  /** Whether form is currently submitting */
+  isSubmitting?: boolean;
 }
 
 // ─── Loader helper ────────────────────────────────────────────────────────────
@@ -57,13 +63,16 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const LocationandReach: React.FC<LocationPickerProps> = ({
+
   apiKey,
   onChange,
+  onPhoneChange,
   defaultCenter = { lat: 0, lng: 20 },
   defaultZoom = 2,
   placeholder = "Enter an address or use browser detection…",
   mapHeight = "420px",
-  onNext
+  onBack,
+  isSubmitting = false
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +82,7 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
   const autocompleteRef = useRef<any>(null);
 
   const [address, setAddress] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [coords, setCoords] = useState<LatLng | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [statusMsg, setStatusMsg] = useState<string>("");
@@ -286,6 +296,7 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
+    <>
     <div style={styles.wrapper}>
       {/* Header */}
       <div style={styles.header}>
@@ -334,12 +345,22 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
           >
             Search
           </button>
-          <button
-            onClick={onNext}
-          >
-            Next Step
-          </button>
         </div>
+
+        {/* Phone Number Input */}
+        <Form.Group className="mb-3 mt-4">
+          <Form.Label className="fw-bold">Contact Phone Number *</Form.Label>
+          <Form.Control
+            type="tel"
+            placeholder="Enter phone number"
+            value={phoneNumber}
+            onChange={(e) => {
+              setPhoneNumber(e.target.value);
+              onPhoneChange?.(e.target.value);
+            }}
+            required
+          />
+        </Form.Group>
 
         <div style={styles.orRow}>
           <span style={styles.orLine} />
@@ -411,7 +432,22 @@ const LocationandReach: React.FC<LocationPickerProps> = ({
           <span style={styles.coordHint}>↕ Drag the marker to refine</span>
         </div>
       )}
+
+      {/* Action Buttons */}
+      <div className="d-flex gap-2 mt-4 ms-4 me-4">
+        <Button variant="dark" className="w-50 rounded-pill" onClick={onBack} disabled={isSubmitting}>
+          Back
+        </Button>
+        <Button          
+          type="submit"
+          variant="warning" 
+          className="w-50 rounded-pill" 
+          disabled={!address.trim() || !phoneNumber.trim() || isSubmitting}>
+        {isSubmitting ? "Submitting..." : "Complete Sign Up"}
+      </Button>
+      </div>
     </div>
+    </>
   );
 };
 

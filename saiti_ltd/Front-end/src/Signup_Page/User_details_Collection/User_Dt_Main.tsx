@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
+import axios from '../../api/axios';
 
 import LocationandReach from './LocationandReach';
 
 import GeneralInfo from './GeneralInfo';
-import Productioninfo from './Productioninfo';
 import VerticalStepper from './VerticalStepper';
 
 const spinStyle = document.createElement("style")
@@ -14,32 +14,91 @@ document.head.appendChild(spinStyle)
 const User_Dt_Main = () => {
 
   const [step, setStep] = useState<number>(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    role_type: 'Merchant',
-    business_name: '',
-    phone_number: '',
-    location: '',
+    role_type: 'merchant',
     business_logo: '',
+    location: '',
+    phone_number: '',
 
-    // Merchant
-    business_type: '',
-    products_sold: [],
-    shelf_capacity: 0,
-    initial_stock: [],
-    sales_data: '',
+    // Producer-specific
+    companyName: '',
+    industryType: '',
+    ProductionScope: '',
+    description: '',
 
-    // Wholesaler
-    distribution_Areas: [],
-    lead_time: 0,
+    // Wholesaler-specific
+    Scope: '',
 
-    // Producer
-    primary_distribution_partners: [],
-    daily_prod: []
+    // Merchant-specific
+    businessName: '',
   });
 
   const nextStep = () => setStep(prev => prev + 1);
   const prevStep = () => setStep(prev => prev - 1);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Validate required fields
+      if (!formData.location || !formData.phone_number) {
+        setError("Location and phone number are required");
+        setLoading(false);
+        return;
+      }
+
+      if (formData.role_type === 'producer') {
+        if (!formData.companyName || !formData.ProductionScope) {
+          setError("Company name and production scope are required");
+          setLoading(false);
+          return;
+        }
+      } else if (formData.role_type === 'wholesaler') {
+        if (!formData.companyName) {
+          setError("Company name is required");
+          setLoading(false);
+          return;
+        }
+      } else if (formData.role_type === 'merchant') {
+        if (!formData.businessName) {
+          setError("Business name is required");
+          setLoading(false);
+          return;
+        }
+      }
+
+      console.log("📤 Sending profile data:", formData);
+
+      // Submit profile data
+      const response = await axios.post(
+        'user/complete-profile',
+        formData,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          withCredentials: true,
+        }
+      );
+
+      console.log("✅ Profile submission successful:", response.data);
+
+      // Success - redirect to dashboard or home
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
+    } catch (err: any) {
+      console.error("❌ Profile completion failed:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+      setError(err.response?.data?.message || "Failed to complete profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Container fluid className="p-4 vh-100 overflow-hidden bg-white">
@@ -54,7 +113,13 @@ const User_Dt_Main = () => {
         <Col md={8} lg={9} className=" bg-light d-flex align-items-center justify-content-center px-5 overflow-auto rounded-end-4">
           <div className="w-100" style={{ maxWidth: '600px' }}>
 
-            <Form>
+            <Form onSubmit={handleSubmit}>
+
+              {error && (
+                <div className="alert alert-danger mb-3" role="alert">
+                  {error}
+                </div>
+              )}
 
               {step === 1 && (
                 <GeneralInfo
@@ -68,22 +133,17 @@ const User_Dt_Main = () => {
                 <>
                   <LocationandReach
                     apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-                    onNext={nextStep}
                     onBack={prevStep}
                     onChange={({ address }) => {
                       setFormData((prev) => ({ ...prev, location: address }));
                     }}
+                    onPhoneChange={(phone) => {
+                      setFormData((prev) => ({ ...prev, phone_number: phone }));
+                    }}
                     mapHeight='420px'
+                    isSubmitting={loading}
                   />
                 </>
-              )}
-
-              {step === 3 && (
-                <Productioninfo
-                  formData={formData}
-                  setFormData={setFormData}
-                  onBack={prevStep}
-                />
               )}
 
             </Form>
