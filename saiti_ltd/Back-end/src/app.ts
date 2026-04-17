@@ -7,6 +7,29 @@ import userRoutes from "./routes/user.router.js";
 import product1Router from "@routes/product1.router.js";
 import orderRouter from "./routes/order.router.js";
 
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://saiti-ltd.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
+    'http://127.0.0.1:5176',
+    'http://127.0.0.1:5177'
+].filter((origin): origin is string => Boolean(origin));
+
+const isAllowedOrigin = (origin: string) => {
+    if (allowedOrigins.includes(origin)) {
+        return true;
+    }
+
+    return /^https:\/\/[a-z0-9-]+\.onrender\.com$/i.test(origin);
+};
+
 class App {
     private app: Express;
 
@@ -21,19 +44,17 @@ class App {
         this.app.use(express.json());
         this.app.use(cookieParser());
         this.app.use(cors({
-            origin: [
-                'https://saiti-ltd.vercel.app', 
-                'http://localhost:5173',
-                'http://localhost:5174',
-                'http://localhost:5175',
-                'http://localhost:5176',
-                'http://localhost:5177',
-                'http://127.0.0.1:5173',
-                'http://127.0.0.1:5174',
-                'http://127.0.0.1:5175',
-                'http://127.0.0.1:5176',
-                'http://127.0.0.1:5177'
-            ],
+            origin: (origin, callback) => {
+                if (!origin) {
+                    return callback(null, true);
+                }
+
+                if (isAllowedOrigin(origin)) {
+                    return callback(null, true);
+                }
+
+                return callback(new Error(`CORS blocked for origin: ${origin}`));
+            },
             methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
             credentials: true
         }))

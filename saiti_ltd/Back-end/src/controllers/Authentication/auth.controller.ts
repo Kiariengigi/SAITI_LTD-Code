@@ -1,11 +1,18 @@
 import Send from "../../utils/Authentication/response.utils.js"
 import { prisma } from "../../db.js";
-import { Request, Response } from "express";
+import { CookieOptions, Request, Response } from "express";
 import authSchema from "../../validations/Authentication/auth.schema.js";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import authConfig from "../../config/Authentication/auth.config.js";
+
+const isProduction = process.env.NODE_ENV === "production";
+const cookieOptions: CookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+};
 
 class AuthController {
     static login = async (req: Request, res: Response) => {
@@ -34,8 +41,8 @@ class AuthController {
             data: { refreshToken } // ← needs refreshToken field in schema
         });
 
-        res.cookie("accessToken", accessToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", maxAge: 15 * 60 * 1000, sameSite: "strict" });
-        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000, sameSite: "strict" });
+        res.cookie("accessToken", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+        res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 24 * 60 * 60 * 1000 });
 
         return Send.success(res, {
             id: user.id,
@@ -99,16 +106,12 @@ class AuthController {
 
         // 4. Set cookies
         res.cookie("accessToken", accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 15 * 60 * 1000,
-            sameSite: "strict"
+            ...cookieOptions,
+            maxAge: 15 * 60 * 1000
         });
         res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 24 * 60 * 60 * 1000,
-            sameSite: "strict"
+            ...cookieOptions,
+            maxAge: 24 * 60 * 60 * 1000
         });
         
         return Send.success(res, {
@@ -136,8 +139,8 @@ class AuthController {
             });
 
             // 3. Remove the access and refresh token cookies
-            res.clearCookie("accessToken");
-            res.clearCookie("refreshToken");
+            res.clearCookie("accessToken", cookieOptions);
+            res.clearCookie("refreshToken", cookieOptions);
 
             // 4. Send success response after logout
             return Send.success(res, null, "Logged out successfully.");
@@ -179,10 +182,8 @@ class AuthController {
 
             // Send the new access token in the response
             res.cookie("accessToken", newAccessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                maxAge: 15 * 60 * 1000,  // 15 minutes
-                sameSite: "strict"
+                ...cookieOptions,
+                maxAge: 15 * 60 * 1000  // 15 minutes
             });
 
             return Send.success(res, { message: "Access token refreshed successfully" });
