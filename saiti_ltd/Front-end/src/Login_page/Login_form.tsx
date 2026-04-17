@@ -28,6 +28,12 @@ function Login_form() {
         });
 
         if (response.data) {
+          const accessToken = response.data?.data?.accessToken;
+
+          if (accessToken) {
+            window.localStorage.setItem('accessToken', accessToken);
+          }
+
             setSuccess('Login successful! Redirecting...');
             setTimeout(() => {
                 navigate('/dashboard');

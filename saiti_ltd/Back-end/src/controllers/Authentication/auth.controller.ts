@@ -47,7 +47,8 @@ class AuthController {
         return Send.success(res, {
             id: user.id,
             fullName: user.fullName, // ← fullName not username
-            email: user.email
+            email: user.email,
+            accessToken
         });
     } catch (error) {
         console.error("Login Failed:", error);
@@ -117,7 +118,8 @@ class AuthController {
         return Send.success(res, {
             id: newUser.id,
             fullName: newUser.fullName,
-            email: newUser.email
+            email: newUser.email,
+            accessToken
         }, "User successfully registered.");
     } catch (error) {
         console.error("Registration failed:", error);

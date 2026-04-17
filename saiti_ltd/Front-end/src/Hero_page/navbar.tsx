@@ -18,6 +18,7 @@ function Navbar_comp() {
       await axios.post('auth/logout', {}, {
         withCredentials: true
       })
+      window.localStorage.removeItem('accessToken')
       setIsLoggedIn(false)
       navigate('/')
     } catch (error) {

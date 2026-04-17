@@ -59,6 +59,7 @@ export default function Header({
       await axios.post('auth/logout', {}, {
         withCredentials: true
       });
+      window.localStorage.removeItem('accessToken');
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);

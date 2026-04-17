@@ -39,7 +39,7 @@ function Signup_form() {
         }
 
         try {
-            await axios.post(
+            const response = await axios.post(
                 SIGN_UP_URL, 
                 JSON.stringify({ 
                     fullName: user, 
@@ -52,6 +52,13 @@ function Signup_form() {
                     withCredentials: true,
                 }
             )
+
+              const accessToken = response.data?.data?.accessToken;
+
+              if (accessToken) {
+                window.localStorage.setItem('accessToken', accessToken);
+              }
+
             setSuccess(true)
             setUser("")
             setEmail("")
