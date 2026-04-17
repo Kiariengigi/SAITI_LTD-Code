@@ -34,6 +34,8 @@ const severityColor: Record<string, string> = {
 };
 
 function AI_Insights({ insights, summary, loading, onOrderSuggestion, onOrderAllSuggestions }: Props) {
+    const getSuggestedQuantity = (item: InsightItem) => Math.max(1, Math.floor(Number(item.forecastValue ?? item.product.reorderPoint) || 1));
+
     // Derive the display values from real data
     const reorderItems    = summary?.reorderSuggestions ?? [];
     const stockoutItems   = summary?.stockoutWarnings   ?? [];
@@ -54,8 +56,8 @@ function AI_Insights({ insights, summary, loading, onOrderSuggestion, onOrderAll
 
     // Total reorder value estimate: sum of (price × reorderPoint) for each suggestion
     const estimatedOrderTotal = reorderItems.reduce((acc, i) => {
-        const price       = parseFloat(i.product.price        ?? "0");
-        const reorderQty  = parseFloat(i.product.reorderPoint ?? "0");
+        const price       = parseFloat(i.product.price ?? "0");
+        const reorderQty  = getSuggestedQuantity(i);
         return acc + price * reorderQty;
     }, 0);
 
@@ -176,10 +178,10 @@ function AI_Insights({ insights, summary, loading, onOrderSuggestion, onOrderAll
                                             />
                                         </div>
                                         <div style={{ fontSize: "0.7rem", color: "#6c757d", marginBottom: 4 }}>
-                                            Reorder: <strong>{item.product.reorderPoint} {item.product.unitOfMeasure}</strong>
+                                            Suggested: <strong>{getSuggestedQuantity(item)} {item.product.unitOfMeasure}</strong>
                                         </div>
                                         <h4 style={{ fontSize: "0.9rem", fontWeight: 700 }}>
-                                            KSH {(parseFloat(item.product.price) * parseFloat(item.product.reorderPoint)).toLocaleString()}
+                                            KSH {(parseFloat(item.product.price) * getSuggestedQuantity(item)).toLocaleString()}
                                         </h4>
                                         <OverlayTrigger
                                             placement="top"

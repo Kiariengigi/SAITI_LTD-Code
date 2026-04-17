@@ -219,10 +219,12 @@ function Products_main() {
         }
     };
 
+    const getSuggestedQuantity = (item: InsightItem) => Math.max(1, Math.floor(Number(item.forecastValue ?? item.product.reorderPoint) || 1));
+
     const handleOrderSuggestedItem = (item: InsightItem) => {
         const unitPrice = Number(item.product.price);
         const stockLevel = Number(item.product.currentStockLevel);
-        const suggestedQuantity = Math.max(1, Math.floor(Number(item.product.reorderPoint) || 1));
+        const suggestedQuantity = getSuggestedQuantity(item);
 
         setSelectedItems((prev) => ({
             ...prev,
@@ -254,7 +256,7 @@ function Products_main() {
             for (const item of items) {
                 const unitPrice = Number(item.product.price);
                 const stockLevel = Number(item.product.currentStockLevel);
-                const suggestedQuantity = Math.max(1, Math.floor(Number(item.forecastValue ?? item.product.reorderPoint) || 1));
+                const suggestedQuantity = getSuggestedQuantity(item);
 
                 next[item.productId] = {
                     productId: item.productId,
