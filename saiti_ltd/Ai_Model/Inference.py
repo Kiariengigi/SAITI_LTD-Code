@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -44,8 +45,15 @@ def get_customer_candidates(customer_id, features, capacity, orders, feature_col
     Returns a DataFrame of all SKUs the customer has previously ordered,
     with all features required for model scoring.
     """
-    # Convert customer_id to float to match the stored dtype
-    customer_features = features[features["customer_id"] == float(customer_id)].copy()
+    customer_id_str = str(customer_id)
+    customer_features = features[features["customer_id"].astype(str) == customer_id_str].copy()
+
+    if len(customer_features) == 0 and customer_id_str.replace(".", "", 1).isdigit():
+        customer_features = features[features["customer_id"] == float(customer_id)].copy()
+
+    if len(customer_features) == 0 and os.environ.get("DEMO_DATA_MODE", "").lower() == "true":
+        fallback_customer_id = str(features.iloc[0]["customer_id"])
+        customer_features = features[features["customer_id"].astype(str) == fallback_customer_id].copy()
  
     if len(customer_features) == 0:
         raise ValueError(f"Customer {customer_id} not found in feature store. "
@@ -84,7 +92,15 @@ def score_candidates(model, customer_features, feature_cols):
 # ══════════════════════════════════════════════════════════════════════════
 def get_order_history(customer_id, orders, top_skus, n=5):
     """Returns last N orders for top recommended SKUs."""
-    customer_orders = orders[orders["customer_id"] == float(customer_id)].copy()
+    customer_id_str = str(customer_id)
+    customer_orders = orders[orders["customer_id"].astype(str) == customer_id_str].copy()
+
+    if len(customer_orders) == 0 and customer_id_str.replace(".", "", 1).isdigit():
+        customer_orders = orders[orders["customer_id"] == float(customer_id)].copy()
+
+    if len(customer_orders) == 0 and os.environ.get("DEMO_DATA_MODE", "").lower() == "true":
+        fallback_customer_id = str(orders.iloc[0]["customer_id"])
+        customer_orders = orders[orders["customer_id"].astype(str) == fallback_customer_id].copy()
     history = []
  
     for sku in top_skus[:n]:
@@ -116,6 +132,8 @@ def build_ml_payload(customer_id, scored, orders, top_n=5):
     """
     # Filter to meaningful candidates (prob > 0.4)
     candidates = scored[scored["reorder_probability"] > 0.4].head(top_n)
+    if candidates.empty:
+        candidates = scored.head(top_n)
  
     top_skus = candidates["sku"].tolist()
     order_history = get_order_history(customer_id, orders, top_skus)
