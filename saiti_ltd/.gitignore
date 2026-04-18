@@ -1,2 +1,4 @@
-*.env 
+*.env
+Ai_Model/.env
+Ai_Model/.env.*
 *.csv

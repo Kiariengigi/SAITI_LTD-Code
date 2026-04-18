@@ -75,16 +75,22 @@ def _placeholder_payload(customer_id: str, top_n: int, reason: str) -> dict[str,
 
 def make_payload(customer_id: str, top_n: int) -> dict[str, Any]:
     if not _has_artefacts():
-        return _placeholder_payload(
+        payload = _placeholder_payload(
             customer_id,
             top_n,
             "Processed parquet files are not bundled in this deployment.",
         )
+        print("[ml] Returning degraded payload because processed parquet files are missing.")
+        print(payload)
+        return payload
 
     model, feature_cols, features, capacity, orders, _dataset = get_artefacts()
     candidates = get_customer_candidates(customer_id, features, capacity, orders, feature_cols)
     scored = score_candidates(model, candidates, feature_cols)
-    return build_ml_payload(customer_id, scored, orders, top_n=top_n)
+    payload = build_ml_payload(customer_id, scored, orders, top_n=top_n)
+    print(f"[ml] Built ML payload for customer {customer_id} with {len(payload.get('ml_recommendations', []))} recommendations.")
+    print(payload)
+    return payload
 
 
 @app.get("/health")

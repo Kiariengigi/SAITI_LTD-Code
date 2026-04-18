@@ -140,6 +140,9 @@ def call_groq(payload: dict) -> dict:
 
     client = OpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
 
+    print("[groq] Sending payload to Groq:")
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+
     response = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[
@@ -162,6 +165,8 @@ def call_groq(payload: dict) -> dict:
 
     parsed    = json.loads(raw)
     validated = LLMResponse(**parsed)
+    print("[groq] Raw Groq response:")
+    print(json.dumps(parsed, indent=2, ensure_ascii=False))
     return validated.model_dump()
 
 
@@ -253,22 +258,29 @@ def generate_recommendation(payload: dict) -> dict:
     try:
         result = call_groq(payload)
         result["_provider"] = GROQ_MODEL
+        print("[groq] Groq response validated successfully.")
     except EnvironmentError as e:
         print(f"Config error: {e}")
         result = _ml_fallback(payload, str(e))
+        print("[groq] Falling back to ML-only response.")
     except json.JSONDecodeError as e:
         print(f"Groq returned invalid JSON: {e}")
         result = _ml_fallback(payload, str(e))
+        print("[groq] Falling back to ML-only response.")
     except ValidationError as e:
         print(f"Groq response failed schema validation: {e}")
         result = _ml_fallback(payload, str(e))
+        print("[groq] Falling back to ML-only response.")
     except Exception as e:
         print(f"Groq call failed: {e}")
         result = _ml_fallback(payload, str(e))
+        print("[groq] Falling back to ML-only response.")
 
     result["customer_id"]        = payload.get("customer_id")
     result["generated_at"]       = payload.get("generated_at")
     result["ml_candidate_count"] = len(payload.get("ml_recommendations", []))
+    print("[groq] Final recommendation response:")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
     return result
 
 
