@@ -101,8 +101,8 @@ const User_Dt_Main = () => {
   };
 
   return (
-    <Container fluid className="p-4 vh-100 overflow-hidden bg-white">
-      <Row className="g-0 h-100 rounded-3">
+    <Container fluid className="p-4 min-vh-100 bg-white" style={{ overflowY: "auto" }}>
+      <Row className="g-0 min-vh-100 rounded-3">
 
         {/* LEFT PANEL */}
         <Col md={4} lg={3} style={{backgroundColor: '#FFF8DE'}} className="d-flex justify-content-center pt-5 rounded-start-4">
@@ -110,7 +110,7 @@ const User_Dt_Main = () => {
         </Col>
 
         {/* RIGHT PANEL */}
-        <Col md={8} lg={9} className=" bg-light d-flex align-items-center justify-content-center px-5 overflow-auto rounded-end-4">
+        <Col md={8} lg={9} className="bg-light d-flex align-items-start justify-content-center px-5 py-5 rounded-end-4">
           <div className="w-100" style={{ maxWidth: '600px' }}>
 
             <Form onSubmit={handleSubmit}>

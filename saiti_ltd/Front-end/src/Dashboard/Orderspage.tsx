@@ -16,6 +16,7 @@ type OrderRow = {
   id: string;
   orderDate: string;
   buyerName: string;
+  soldByName: string;
   products: OrderProduct[];
   totalPrice: number;
   status: OrderStatus;
@@ -81,6 +82,7 @@ export default function OrdersPage() {
   const [metrics, setMetrics] = useState<OrderAnalytics | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -172,6 +174,7 @@ export default function OrdersPage() {
   ];
 
   return (
+    <>
     <div className="p-3 d-flex flex-column gap-3 h-100" style={{ minHeight: 0, overflowY: "auto" }}>
       {error && (
         <div className="alert alert-danger mb-0" role="alert">
@@ -218,8 +221,115 @@ export default function OrdersPage() {
           data={filteredOrders}
           pageSize={6}
           searchKeys={["id", "buyerName", "status"]}
+          onRowClick={setSelectedOrder}
         />
       </div>
     </div>
+
+    {selectedOrder && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setSelectedOrder(null)}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(8, 14, 26, 0.55)",
+          zIndex: 1300,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 16,
+        }}
+      >
+        <div
+          onClick={(event) => event.stopPropagation()}
+          style={{
+            width: "min(900px, 100%)",
+            maxHeight: "90vh",
+            overflow: "auto",
+            background: "#fff",
+            borderRadius: 18,
+            border: "1px solid #e9ecef",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.22)",
+          }}
+        >
+          <div className="d-flex align-items-start justify-content-between gap-3 p-3 border-bottom">
+            <div>
+              <div style={{ fontSize: 12, color: "#6c757d" }}>Order Details</div>
+              <h5 className="mb-1" style={{ fontWeight: 800 }}>{selectedOrder.id}</h5>
+              <div style={{ fontSize: 13, color: "#495057" }}>
+                Bought from <strong>{selectedOrder.soldByName}</strong> by <strong>{selectedOrder.buyerName}</strong>
+              </div>
+            </div>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedOrder(null)}>
+              Close
+            </button>
+          </div>
+
+          <div className="p-3">
+            <div className="row g-3 mb-3">
+              <div className="col-6 col-lg-3">
+                <div className="border rounded-3 p-3 h-100">
+                  <div style={{ fontSize: 11, color: "#6c757d" }}>Order Date</div>
+                  <div style={{ fontWeight: 700 }}>{new Date(selectedOrder.orderDate).toLocaleString()}</div>
+                </div>
+              </div>
+              <div className="col-6 col-lg-3">
+                <div className="border rounded-3 p-3 h-100">
+                  <div style={{ fontSize: 11, color: "#6c757d" }}>Status</div>
+                  <div>{statusBadge(selectedOrder.status)}</div>
+                </div>
+              </div>
+              <div className="col-6 col-lg-3">
+                <div className="border rounded-3 p-3 h-100">
+                  <div style={{ fontSize: 11, color: "#6c757d" }}>Buyer</div>
+                  <div style={{ fontWeight: 700 }}>{selectedOrder.buyerName}</div>
+                </div>
+              </div>
+              <div className="col-6 col-lg-3">
+                <div className="border rounded-3 p-3 h-100">
+                  <div style={{ fontSize: 11, color: "#6c757d" }}>Bought From</div>
+                  <div style={{ fontWeight: 700 }}>{selectedOrder.soldByName}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="table-responsive">
+              <table className="table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedOrder.products.map((product) => (
+                    <tr key={product.id}>
+                      <td style={{ fontWeight: 600 }}>{product.name}</td>
+                      <td>{product.quantity}</td>
+                      <td>{formatCurrency(product.unitPrice)}</td>
+                      <td>{formatCurrency(product.unitPrice * product.quantity)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="d-flex justify-content-end mt-3">
+              <div className="text-end border rounded-3 px-3 py-2" style={{ minWidth: 240 }}>
+                <div style={{ fontSize: 11, color: "#6c757d" }}>Full Order Total</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#111" }}>
+                  {formatCurrency(selectedOrder.totalPrice)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -9,20 +9,34 @@
 
 import { useRef, useState } from 'react';
 import { Form, Button, Alert } from "react-bootstrap";
+import { uploadImageToCloudinary } from '../../api/cloudinary';
 
 const GeneralInfo = ({ formData, setFormData, onNext }: any) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const handleFileChange = (file: File | undefined) => {
+  const handleFileChange = async (file: File | undefined) => {
     if (file) {
-      setFormData({ ...formData, business_logo: file.name });
+      setUploadingLogo(true);
+      setUploadError(null);
+
+      try {
+        const upload = await uploadImageToCloudinary(file, "saiti/business-logos");
+        setFormData((prev: any) => ({ ...prev, business_logo: upload.secureUrl }));
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : "Failed to upload logo.");
+      } finally {
+        setUploadingLogo(false);
+      }
     }
   };
 
   const removeLogo = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setFormData({ ...formData, business_logo: '' });
+    setFormData((prev: any) => ({ ...prev, business_logo: '' }));
+    setUploadError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -37,7 +51,7 @@ const GeneralInfo = ({ formData, setFormData, onNext }: any) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileChange(e.dataTransfer.files[0]);
+      void handleFileChange(e.dataTransfer.files[0]);
     }
   };
 
@@ -110,6 +124,12 @@ const GeneralInfo = ({ formData, setFormData, onNext }: any) => {
       {validationError && (
         <Alert variant="danger" onClose={() => setValidationError(null)} dismissible>
           {validationError}
+        </Alert>
+      )}
+
+      {uploadError && (
+        <Alert variant="danger" onClose={() => setUploadError(null)} dismissible>
+          {uploadError}
         </Alert>
       )}
 
@@ -259,8 +279,12 @@ const GeneralInfo = ({ formData, setFormData, onNext }: any) => {
         <Form.Label className="fw-bold">Business Logo</Form.Label>
         <div
           className="border rounded-4 p-4 text-center bg-light mb-4 position-relative"
-          style={{ cursor: 'pointer', borderStyle: 'dashed' }}
-          onClick={() => fileInputRef.current?.click()}
+          style={{ cursor: uploadingLogo ? 'wait' : 'pointer', borderStyle: 'dashed' }}
+          onClick={() => {
+            if (!uploadingLogo) {
+              fileInputRef.current?.click();
+            }
+          }}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
@@ -273,16 +297,31 @@ const GeneralInfo = ({ formData, setFormData, onNext }: any) => {
               style={{ zIndex: 10 }}
             />
           )}
-          <i className="bi bi-cloud-arrow-up fs-2 text-warning" />
-          <p className="mb-0 mt-2 fw-bold">
-            {formData.business_logo ? formData.business_logo : "Click or drag to upload business logo"}
-          </p>
+          {formData.business_logo ? (
+            <div className="d-flex flex-column align-items-center gap-2">
+              <img
+                src={formData.business_logo}
+                alt="Business logo preview"
+                style={{ width: 88, height: 88, objectFit: 'cover', borderRadius: 18, border: '1px solid #dee2e6' }}
+              />
+              <p className="mb-0 fw-semibold">
+                {uploadingLogo ? "Uploading logo..." : "Logo uploaded. Click to replace."}
+              </p>
+            </div>
+          ) : (
+            <>
+              <i className="bi bi-cloud-arrow-up fs-2 text-warning" />
+              <p className="mb-0 mt-2 fw-bold">
+                {uploadingLogo ? "Uploading logo..." : "Click or drag to upload business logo"}
+              </p>
+            </>
+          )}
           <input
             type="file"
             ref={fileInputRef}
             className="d-none"
             accept="image/*"
-            onChange={(e) => handleFileChange(e.target.files?.[0])}
+            onChange={(e) => void handleFileChange(e.target.files?.[0])}
           />
         </div>
       </Form.Group>

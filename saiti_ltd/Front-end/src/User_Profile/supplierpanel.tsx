@@ -2,6 +2,10 @@ import type { Supplier } from "./Types";
 import { useEffect, useState } from "react";
 import axios from "../api/axios";
 
+type DashboardMetrics = {
+  efficiencyScore: number;
+};
+
 // ── CircularProgress ──────────────────────────────────────────────────────────
 
 interface CircularProgressProps {
@@ -50,16 +54,21 @@ interface SupplierPanelProps {
 
 export default function SupplierPanel({ supplier }: SupplierPanelProps) {
   const [displaySupplier, setDisplaySupplier] = useState<Supplier>(supplier);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUserInfo = async () => {
+    const fetchProfileData = async () => {
       try {
-        const response = await axios.get("user/info", {
-          withCredentials: true,
-        });
+        const [userResponse, dashboardResponse] = await Promise.all([
+          axios.get("user/info", { withCredentials: true }),
+          axios.get("user/dashboard-analytics", { withCredentials: true }),
+        ]);
 
-        const user = response.data?.data?.user;
+        const user = userResponse.data?.data?.user;
         if (!user) return;
+
+        const dashboardMetrics = dashboardResponse.data?.data?.metrics as DashboardMetrics | undefined;
+        const fulfillmentRate = dashboardMetrics?.efficiencyScore ?? supplier.fulfillmentRate;
 
         const roleType = String(user.roleType || "merchant");
         const roleLabel = roleType.charAt(0).toUpperCase() + roleType.slice(1);
@@ -70,19 +79,21 @@ export default function SupplierPanel({ supplier }: SupplierPanelProps) {
           name: user.companyName || "John Doe Company",
           role: roleLabel,
           location: user.location || "Location not set",
+          fulfillmentRate,
           memberSince: memberSinceDate.getFullYear(),
         }));
+
+        setLogoUrl(user.Logo ?? null);
       } catch (error) {
         console.error("Failed to fetch supplier panel details:", error);
       }
     };
 
-    fetchUserInfo();
-  }, []);
+    fetchProfileData();
+  }, [supplier.fulfillmentRate]);
 
   const metrics = [
-    { label: "Fulfillment Rate", value: displaySupplier.fulfillmentRate, color: "#F59E0B" },
-    { label: "Customer Rating",  value: displaySupplier.customerRating,  color: "#22C55E" },
+    { label: "Fulfillment Rating", value: displaySupplier.fulfillmentRate, color: "#F59E0B" },
   ];
 
   return (
@@ -98,12 +109,20 @@ export default function SupplierPanel({ supplier }: SupplierPanelProps) {
       {/* Avatar */}
       <div
         className="rounded-circle border d-flex align-items-center justify-content-center mb-3"
-        style={{ width: 88, height: 88, background: "#f8f8f8", borderColor: "#e5e7eb !important" }}
+        style={{ width: 88, height: 88, background: "#f8f8f8", borderColor: "#e5e7eb !important", overflow: 'hidden' }}
       >
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <rect width="44" height="44" rx="22" fill="#f0f0f0" />
-          <path d="M8 36 L20 16 L28 28 L32 22 L40 36Z" fill="#2B4FD8" />
-        </svg>
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt="Business logo"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+            <rect width="44" height="44" rx="22" fill="#f0f0f0" />
+            <path d="M8 36 L20 16 L28 28 L32 22 L40 36Z" fill="#2B4FD8" />
+          </svg>
+        )}
       </div>
 
       {/* Identity */}

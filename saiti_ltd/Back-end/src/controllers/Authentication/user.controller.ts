@@ -20,6 +20,7 @@ class UserController {
                     email: true,
                     roleType: true,
                     Logo: true,
+                    businessBanner: true,
                     createdAt: true,
                     updatedAt: true,
                     producer: {
@@ -68,6 +69,7 @@ class UserController {
                     email: user.email,
                     roleType: user.roleType,
                     Logo: user.Logo,
+                    businessBanner: user.businessBanner,
                     createdAt: user.createdAt,
                     updatedAt: user.updatedAt,
                     companyName,
@@ -205,6 +207,50 @@ class UserController {
         } catch (error) {
             console.error("Error fetching dashboard analytics:", error);
             return Send.error(res, null, "Failed to load dashboard analytics");
+        }
+    };
+
+    static updateMedia = async (req: Request, res: Response) => {
+        try {
+            const userId = (req as any).userId as string | undefined;
+
+            if (!userId) {
+                return Send.unauthorized(res, null, "Unauthorized");
+            }
+
+            const { Logo, businessBanner } = req.body as {
+                Logo?: string;
+                businessBanner?: string;
+            };
+
+            const data: Record<string, string> = {};
+
+            if (typeof Logo === "string" && Logo.trim()) {
+                data.Logo = Logo.trim();
+            }
+
+            if (typeof businessBanner === "string" && businessBanner.trim()) {
+                data.businessBanner = businessBanner.trim();
+            }
+
+            if (Object.keys(data).length === 0) {
+                return Send.badRequest(res, null, "No media URL provided");
+            }
+
+            const user = await prisma.user.update({
+                where: { id: userId },
+                data,
+                select: {
+                    id: true,
+                    Logo: true,
+                    businessBanner: true,
+                },
+            });
+
+            return Send.success(res, { user }, "Profile media updated successfully");
+        } catch (error) {
+            console.error("Failed to update profile media:", error);
+            return Send.error(res, null, "Failed to update profile media");
         }
     };
 
@@ -614,6 +660,10 @@ class UserController {
                 select: {
                     id: true,
                     roleType: true,
+                    fullName: true,
+                    producer: { select: { companyName: true } },
+                    wholesaler: { select: { companyName: true } },
+                    merchant: { select: { businessName: true } },
                 },
             });
 
@@ -666,11 +716,18 @@ class UserController {
                 }));
 
                 const totalPrice = Number(order.totalValue ?? 0);
+                const soldByName =
+                    user.producer?.companyName ||
+                    user.wholesaler?.companyName ||
+                    user.merchant?.businessName ||
+                    user.fullName ||
+                    "Unknown supplier";
 
                 return {
                     id: order.id,
                     orderDate: order.createdAt,
                     buyerName: order.buyer.fullName,
+                    soldByName,
                     products,
                     totalPrice,
                     status: order.status,

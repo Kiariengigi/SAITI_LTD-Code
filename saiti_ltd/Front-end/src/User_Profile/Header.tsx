@@ -23,6 +23,7 @@ export default function Header({
   const [loading, setLoading] = useState(false);
   const [displayName, setDisplayName] = useState(userName);
   const [displayRole, setDisplayRole] = useState(userRole);
+  const [displayLogo, setDisplayLogo] = useState<string | null>(null);
   const logoTarget = location.pathname === "/products" ? "/dashboard" : "/products";
 
   useEffect(() => {
@@ -45,6 +46,8 @@ export default function Header({
             .toUpperCase() + String(user.roleType).slice(1);
           setDisplayRole(roleLabel);
         }
+
+        setDisplayLogo(user.Logo ?? null);
       } catch (error) {
         console.error('Failed to fetch user info for header:', error);
       }
@@ -98,16 +101,24 @@ export default function Header({
         style={{cursor: 'pointer'}} >
           <div
               className="d-flex align-items-center justify-content-center rounded-circle border"
-              style={{ width: 36, height: 36, background: "#fafafa", cursor: 'pointer' }}
+              style={{ width: 36, height: 36, background: "#fafafa", cursor: 'pointer', overflow: 'hidden' }}
             >
-            <svg
-              width="18" height="18" viewBox="0 0 24 24"
-              fill="none" stroke="#555" strokeWidth="1.8"
-              strokeLinecap="round" strokeLinejoin="round"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            {displayLogo ? (
+              <img
+                src={displayLogo}
+                alt="Business logo"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <svg
+                width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="#555" strokeWidth="1.8"
+                strokeLinecap="round" strokeLinejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            )}
           </div>
 
           <div style={{ fontFamily: "'DM Sans', sans-serif" }}>

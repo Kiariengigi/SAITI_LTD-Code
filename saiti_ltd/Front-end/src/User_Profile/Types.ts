@@ -17,7 +17,6 @@ export interface Supplier {
   role: string;
   location: string;
   fulfillmentRate: number;
-  customerRating: number;
   memberSince: number;
 }
 
@@ -26,7 +25,6 @@ export const SUPPLIER: Supplier = {
   role: "Wholesaler",
   location: "Sigona, Kiambu Kenya",
   fulfillmentRate: 45,
-  customerRating: 45,
   memberSince: 2026,
 };
 

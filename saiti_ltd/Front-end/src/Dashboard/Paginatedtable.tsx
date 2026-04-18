@@ -12,6 +12,7 @@ interface PaginatedTableProps<T> {
   data: T[];
   pageSize?: number;
   searchKeys?: (keyof T)[];
+  onRowClick?: (row: T) => void;
 }
 
 export default function PaginatedTable<T extends { id: string }>({
@@ -19,6 +20,7 @@ export default function PaginatedTable<T extends { id: string }>({
   data,
   pageSize = 6,
   searchKeys = [],
+  onRowClick,
 }: PaginatedTableProps<T>) {
   const [search, setSearch] = useState("");
   const [page, setPage]     = useState(1);
@@ -68,7 +70,21 @@ export default function PaginatedTable<T extends { id: string }>({
             {paginated.map((row) => (
               <tr
                 key={row.id}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                role={onRowClick ? "button" : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
                 style={{ fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}
+                className={onRowClick ? "table-row-clickable" : undefined}
               >
                 {columns.map((col) => (
                   <td key={String(col.key)} className="py-2 px-3 border-bottom" style={{ color: "#333" }}>

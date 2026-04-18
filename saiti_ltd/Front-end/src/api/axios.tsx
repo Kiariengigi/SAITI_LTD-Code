@@ -1,6 +1,10 @@
 import axios from 'axios'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'https://saiti-ltd-backend.onrender.com/api'
+const apiBaseUrl =
+    import.meta.env.VITE_API_BASE_URL ??
+    (import.meta.env.DEV
+        ? 'http://0.0.0.0:7000/api'
+        : 'https://saiti-ltd-backend.onrender.com/api')
 
 const api = axios.create({
     baseURL: apiBaseUrl,

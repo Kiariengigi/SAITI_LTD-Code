@@ -43,6 +43,7 @@ const completeProfile = async (req: Request, res: Response): Promise<void> => {
       role_type,
       phone_number,
       business_logo,
+      business_banner,
       location,
 
       // Producer + Wholesaler fields
@@ -109,6 +110,7 @@ const completeProfile = async (req: Request, res: Response): Promise<void> => {
           roleType:    role_type,          // BUG FIX: was never being set
           phoneNumber: phone_number.trim(), // BUG FIX: phone was not saving
           ...(business_logo ? { Logo: business_logo } : {}),
+          ...(business_banner ? { businessBanner: business_banner } : {}),
         },
       });
 

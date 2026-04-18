@@ -43,6 +43,15 @@ class UserRoutes extends BaseRouter {
                 handler: UserController.getInventoryAnalytics
             },
             {
+                // update profile media (logo/banner)
+                method: "patch",
+                path: "/media", // api/user/media
+                middlewares: [
+                    AuthMiddleware.authenticateUser
+                ],
+                handler: UserController.updateMedia
+            },
+            {
                 // order analytics
                 method: "get",
                 path: "/order-analytics", // api/user/order-analytics
